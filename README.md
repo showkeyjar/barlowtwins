@@ -16,6 +16,11 @@ PyTorch implementation of [Barlow Twins](https://arxiv.org/abs/2103.03230).
 }
 ```
 
+### Install
+
+  conda install -c conda-forge pytables
+
+
 ### Pretrained Model
 
 | epochs | batch size | acc1 | acc5 | download |

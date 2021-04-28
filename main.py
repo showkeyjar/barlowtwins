@@ -20,7 +20,7 @@ from torch import nn, optim
 import torch
 import torchvision
 import torchvision.transforms as transforms
-from h5dataset import HDF5Dataset
+from ecdataset import ECDataset
 
 parser = argparse.ArgumentParser(description='Barlow Twins Training')
 parser.add_argument('data', type=Path, metavar='DIR',
@@ -104,7 +104,7 @@ def main_worker(gpu, args):
         start_epoch = 0
 
     # dataset = torchvision.datasets.ImageFolder(args.data / 'train', Transform())
-    dataset = HDF5Dataset('/mnt/nfs197/ec_day/mos_low', recursive=True, load_data=False, data_cache_size=4, transform=None)
+    dataset = ECDataset('/mnt/nfs196/ec_fw_site/precip_only', recursive=True, load_data=False, data_cache_size=4, transform=None)
     sampler = torch.utils.data.distributed.DistributedSampler(dataset)
     assert args.batch_size % args.world_size == 0
     per_device_batch_size = args.batch_size // args.world_size
