@@ -18,7 +18,11 @@ PyTorch implementation of [Barlow Twins](https://arxiv.org/abs/2103.03230).
 
 ### Install
 
-  conda install -c conda-forge pytables
+  conda create -n pytorch python=3.8
+  conda install --force-reinstall cudatoolkit=11.1 -c nvidia -y
+  conda install --force-reinstall pytorch torchvision torchaudio -c pytorch -y
+  conda install --force-reinstall pytables -c conda-forge -y
+  conda install --force-reinstall pandas -y
 
 
 ### Pretrained Model

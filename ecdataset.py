@@ -20,10 +20,10 @@ class ECDataset(data.Dataset):
         load_data: If True, loads all the data immediately into RAM. Use this if
             the dataset is fits into memory. Otherwise, leave this at false and 
             the data will load lazily.
-        data_cache_size: Number of HDF5 files that can be cached in the cache (default=3).
+        data_cache_size: Number of HDF5 file rows that can be cached in the cache (default=2048).
         transform: PyTorch transform to apply to every data instance (default=None).
     """
-    def __init__(self, file_path, recursive, load_data, data_cache_size=3, transform=None):
+    def __init__(self, file_path, recursive, load_data, data_cache_size=2048, transform=None):
         super().__init__()
         self.data_info = []
         self.data_cache = {}
@@ -68,17 +68,16 @@ class ECDataset(data.Dataset):
         ds = df.drop('precip', axis=1)
         ds = ds.apply(pd.to_numeric, errors='coerce')
         ds.fillna(0, inplace=True)
-        idx = -1
-        # type is derived from the name of the dataset; we expect the dataset
-        # name to have a name such as 'data' or 'label' to identify its type
-        # we also store the shape of the data in case we need it
-        if load_data:
-            idx = self._add_to_cache(ds.values, file_path)
-        self.data_info.append({'file_path': file_path, 'type': 'data', 'shape': ds.values.shape, 'cache_idx': idx})
-        label = df['precip'].values
-        if load_data:
-            idx = self._add_to_cache(label, file_path)
-        self.data_info.append({'file_path': file_path, 'type': 'data', 'label': label.shape, 'cache_idx': idx})
+        # 注意:这里要保证缓存中的每块数据长度是一致的,所以h5dataset才使用每行写入的策略
+        for index, row in ds.iterrows():
+            idx = -1
+            if load_data:
+                idx = self._add_to_cache(row.values, file_path)
+            self.data_info.append({'file_path': file_path, 'type': 'data', 'shape': row.values.shape, 'cache_idx': idx})
+            label = df['precip'].values
+            if load_data:
+                idx = self._add_to_cache(label[index], file_path)
+            self.data_info.append({'file_path': file_path, 'type': 'label', 'shape': label[index].shape, 'cache_idx': idx})
 
     def _load_data(self, file_path):
         """Load data to the cache given the file
@@ -93,14 +92,15 @@ class ECDataset(data.Dataset):
         ds = df.drop('precip', axis=1)
         ds = ds.apply(pd.to_numeric, errors='coerce')
         ds.fillna(0, inplace=True)
-        idx = self._add_to_cache(ds.values, file_path)
-        file_idx = next(i for i,v in enumerate(self.data_info) if v['file_path'] == file_path)
-        self.data_info[file_idx + idx]['cache_idx'] = idx
-
         label = df['precip'].values
-        idx = self._add_to_cache(label, file_path)
-        file_idx = next(i for i,v in enumerate(self.data_info) if v['file_path'] == file_path)
-        self.data_info[file_idx + idx]['cache_idx'] = idx
+        for index, row in ds.iterrows():
+            idx = self._add_to_cache(row.values, file_path)
+            file_idx = next(i for i,v in enumerate(self.data_info) if v['file_path'] == file_path)
+            self.data_info[file_idx + idx]['cache_idx'] = idx
+
+            idx = self._add_to_cache(label[index], file_path)
+            file_idx = next(i for i,v in enumerate(self.data_info) if v['file_path'] == file_path)
+            self.data_info[file_idx + idx]['cache_idx'] = idx
 
         # remove an element from data cache if size was exceeded
         if len(self.data_cache) > self.data_cache_size:
