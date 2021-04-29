@@ -1,1 +1,2 @@
-nohup python main.py test/ --epochs 1000 --batch-size 2048 --learning-rate 0.2 --lambd 0.0051 --projector 8192-8192-8192 --scale-loss 0.024 > logs/train.log &
+# nohup python main.py test/ --epochs 1000 --batch-size 2048 --learning-rate 0.2 --lambd 0.0051 --projector 8192-8192-8192 --scale-loss 0.024 > logs/train.log &
+nohup python main.py test/ --epochs 1000 --batch-size 1024 --learning-rate 0.2 --lambd 0.0051 --projector 2048-2048-2048 --scale-loss 0.024 > logs/train.log &

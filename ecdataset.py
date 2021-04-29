@@ -4,6 +4,13 @@ from pathlib import Path
 import torch
 from torch.utils import data
 
+sel_col = ['lat', 'lon', 'hour', 'p3020', 'z', 'deg0l', 'cbh', 'd2m', 'skt',
+       't2m', 'sp', 'msl', 'v10', 'sf', 'u10', 'lsp', 'tp', 'cp', 'tcc', 'hcc',
+       'lcc', 'sd', 'mcc', 'cape', 'wind_speed', 'wind_direction', 'alti',
+       'alti0', 'alti3', 'alti1', 'alti2', 'solar_azimuth_angle', 'rad_vector',
+       'earth_distance', 'norm_irradiance', 'moon_Az', 'moon_El', 'moon_Dist',
+       'tp1', 'precip']
+
 class ECDataset(data.Dataset):
     """Represents an abstract HDF5 dataset.
     
@@ -53,12 +60,18 @@ class ECDataset(data.Dataset):
         return len(self.get_data_infos('data'))
     
     def _add_data_infos(self, file_path, load_data):
+        global sel_col
         df = pd.read_hdf(file_path, "df")
+        df = df[sel_col]
+        df.dropna(subset=['precip'], inplace=True)
+        df['precip'] = df['precip'].astype(int)
+        ds = df.drop('precip', axis=1)
+        ds = ds.apply(pd.to_numeric, errors='coerce')
+        ds.fillna(0, inplace=True)
         idx = -1
         # type is derived from the name of the dataset; we expect the dataset
         # name to have a name such as 'data' or 'label' to identify its type
         # we also store the shape of the data in case we need it
-        ds = df.drop('precip', axis=1)
         if load_data:
             idx = self._add_to_cache(ds.values, file_path)
         self.data_info.append({'file_path': file_path, 'type': 'data', 'shape': ds.values.shape, 'cache_idx': idx})
@@ -72,8 +85,14 @@ class ECDataset(data.Dataset):
         path and update the cache index in the
         data_info structure.
         """
+        global sel_col
         df = pd.read_hdf(file_path, "df")
+        df = df[sel_col]
+        df.dropna(subset=['precip'], inplace=True)
+        df['precip'] = df['precip'].astype(int)
         ds = df.drop('precip', axis=1)
+        ds = ds.apply(pd.to_numeric, errors='coerce')
+        ds.fillna(0, inplace=True)
         idx = self._add_to_cache(ds.values, file_path)
         file_idx = next(i for i,v in enumerate(self.data_info) if v['file_path'] == file_path)
         self.data_info[file_idx + idx]['cache_idx'] = idx
